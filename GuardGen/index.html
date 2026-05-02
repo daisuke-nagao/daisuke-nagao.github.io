@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <title>GuardGen</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Color+Emoji&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.9.0/styles/line-numbers.min.css">
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.9.0/highlightjs-line-numbers.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.indigo.min.css">
+    <style>
+        :root {
+            --pico-font-family-monospace: "Fira Code", SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", ui-monospace, monospace, var(--pico-font-family-emoji);
+            --pico-font-family-sans-serif: "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", system-ui, sans-serif, var(--pico-font-family-emoji);
+        }
+    </style>
+</head>
+
+<body class="container">
+    <article>
+        <header>
+            <h1>GuardGen</h1>
+            <p>A lightweight tool for generating unique include guards for C/C++ header files.</p>
+        </header>
+        <main>
+            <p> Simply click to generate a new UUID-based guard and paste it into your code.</p>
+
+            <ul>
+                <li> Unique Identifiers: UUID v7-based guards to prevent header collisions</li>
+                <li> Instant Generation: One click, ready to copy</li>
+                <li> Privacy First: Runs entirely in-browser via WebAssembly. No data is sent to any server.</li>
+            </ul>
+
+            <fieldset>
+                <legend>Language:</legend>
+                <input type="radio" id="Cxx" name="lang" value="Cxx" checked /><label htmlFor="Cxx">C++</label>
+                <input type="radio" id="C" name="lang" value="C" /><label htmlFor="C">C</label>
+            </fieldset>
+
+            <pre id="out"><code class="language-cpp">loading...</code></pre>
+            <script type="module">
+                import init, { generate_guard, Language, LineEnding } from "./pkg/guardgen_lib.js";
+
+                async function main() {
+                    await init();
+                    const pre = document.getElementById("out");
+                    const codeEl = pre.querySelector("code");
+
+                    // Generate content and keep a raw copy for clipboard
+                    const getSelectedLanguage = () => {
+                        const sel = document.querySelector('input[name="lang"]:checked');
+                        if (!sel) return Language.None;
+                        return sel.value === 'C' ? Language.C : Language.Cxx;
+                    };
+
+                    let rawText = generate_guard("UUID", null, getSelectedLanguage(), LineEnding.LF);
+                    codeEl.textContent = rawText;
+
+                    // Syntax highlight (use safeHighlight to unset data-highlighted first)
+                    function safeHighlight(el) {
+                        try {
+                            if (el && el.dataset && el.dataset.highlighted) {
+                                delete el.dataset.highlighted;
+                                el.removeAttribute('data-highlighted');
+                            }
+                        } catch (e) {
+                            console.warn('safeHighlight cleanup failed', e);
+                        }
+
+                        if (window.hljs) {
+                            if (hljs.highlightElement) {
+                                hljs.highlightElement(el);
+                            } else if (hljs.highlightBlock) {
+                                hljs.highlightBlock(el);
+                            } else if (hljs.highlightAll) {
+                                hljs.highlightAll();
+                            }
+                        }
+                    }
+
+                    if (window.hljs) {
+                        safeHighlight(codeEl);
+
+                        // Add line numbers (if plugin available)
+                        if (hljs.lineNumbersBlock) {
+                            try {
+                                hljs.lineNumbersBlock(codeEl);
+                            } catch (e) {
+                                console.warn("hljs.lineNumbersBlock failed:", e);
+                            }
+                        }
+                    }
+
+                    // Add a single copy button and a regenerate button inside the pre
+                    if (!pre.querySelector(".copy-btn")) {
+                        const btn = document.createElement("button");
+                        btn.className = "copy-btn outline";
+                        btn.type = "button";
+                        btn.setAttribute("aria-label", "Copy code");
+                        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path fill="currentColor" d="M16 2H8a2 2 0 0 0-2 2v1H4v15a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5h-2V4a2 2 0 0 0-2-2zM8 4h8v1H8V4zm10 5H6v11h12V9z"/></svg><span class="copy-label" style="margin-left:6px">Copy</span>';
+                        pre.appendChild(btn);
+
+                        // regenerate button
+                        const regen = document.createElement("button");
+                        regen.className = "regen-btn outline";
+                        regen.type = "button";
+                        regen.setAttribute("aria-label", "Regenerate");
+                        regen.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path fill="currentColor" d="M12 6V3L8 7l4 4V8c2.8 0 5 2.2 5 5a5 5 0 0 1-5 5 5 5 0 0 1-4.9-4H9a7 7 0 0 0 6.9 7A7 7 0 0 0 23 13c0-3.9-3.1-7-7-7z"/></svg>';
+                        pre.appendChild(regen);
+
+                        const flash = (msg) => {
+                            const lbl = btn.querySelector(".copy-label");
+                            btn.classList.add("copied");
+                            if (lbl) lbl.textContent = msg;
+                            setTimeout(() => { btn.classList.remove("copied"); if (lbl) lbl.textContent = "Copy"; }, 1400);
+                        };
+
+                        const getText = () => rawText;
+
+                        // Only support navigator.clipboard; disable the button if unavailable
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            btn.addEventListener("click", async () => {
+                                try {
+                                    await navigator.clipboard.writeText(getText());
+                                    flash("Copied");
+                                } catch (err) {
+                                    console.warn("navigator.clipboard failed:", err);
+                                    flash("Copy failed");
+                                }
+                            });
+                        } else {
+                            btn.disabled = true;
+                            btn.title = "Clipboard API not available";
+                        }
+
+                        // regenerate handler: generate new guard and re-highlight + reapply line numbers
+                        regen.addEventListener("click", async () => {
+                            // simple visual feedback
+                            regen.disabled = true;
+                            const oldLabel = regen.innerHTML;
+                            regen.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.3 0 6 2.7 6 6a6 6 0 0 1-6 6 6 6 0 0 1-5.9-5H9a8 8 0 0 0 7.9 8A8 8 0 0 0 25 13c0-4.4-3.6-9-13-9z"/></svg>';
+                            try {
+                                rawText = generate_guard("UUID", null, getSelectedLanguage(), LineEnding.LF);
+                                codeEl.textContent = rawText;
+                                if (window.hljs) {
+                                    // remove existing line numbers first (plugin may duplicate)
+                                    const existing = pre.querySelector('.hljs-ln-numbers');
+                                    if (existing) existing.remove();
+
+                                    safeHighlight(codeEl);
+
+                                    if (hljs.lineNumbersBlock) {
+                                        try { hljs.lineNumbersBlock(codeEl); } catch (e) { console.warn(e); }
+                                    }
+                                }
+                            } finally {
+                                regen.disabled = false;
+                                regen.innerHTML = oldLabel;
+                            }
+                        });
+
+                        // Update preview when language radio changes
+                        const radios = document.querySelectorAll('input[name="lang"]');
+                        radios.forEach(r => r.addEventListener('change', () => {
+                            try {
+                                rawText = generate_guard("UUID", null, getSelectedLanguage(), LineEnding.LF);
+                                codeEl.textContent = rawText;
+                                safeHighlight(codeEl);
+                                if (hljs.lineNumbersBlock) {
+                                    try { hljs.lineNumbersBlock(codeEl); } catch (e) { console.warn(e); }
+                                }
+                            } catch (e) { console.warn('generate_guard failed on language change', e); }
+                        }));
+                    }
+                }
+
+                main();
+            </script>
+        </main>
+
+        <footer>
+            <p>Copyright &copy; 2026 Daisuke NAGAO</p>
+        </footer>
+    </article>
+</body>
+
+</html>
