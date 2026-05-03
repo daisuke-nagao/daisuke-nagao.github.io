@@ -1,0 +1,15 @@
+NOTICE for Google Material Icons
+
+This product includes icons from Google Material Icons:
+https://github.com/google/material-design-icons
+
+These icons are provided by Google and are licensed under the
+Apache License, Version 2.0. A copy of the license is included in
+LICENSE-MATERIAL-ICONS.txt.
+
+If you redistribute these icons (or derivative works), ensure that you
+keep the above attribution and include a copy of the Apache License
+(see LICENSE-MATERIAL-ICONS.txt) as required by the license terms.
+
+For full upstream details, see the original repository:
+https://github.com/google/material-design-icons

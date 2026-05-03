@@ -21,6 +21,30 @@
             --pico-font-family-monospace: "Fira Code", SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", ui-monospace, monospace, var(--pico-font-family-emoji);
             --pico-font-family-sans-serif: "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", system-ui, sans-serif, var(--pico-font-family-emoji);
         }
+        /* Pico-friendly styling for unobtrusive Material Icons attribution links */
+        footer .material-links {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            margin: 0.25rem 0 0;
+            display: inline-flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        footer .material-links a {
+            color: inherit;
+            text-decoration: none;
+            opacity: 0.85;
+        }
+        footer .material-links a:hover,
+        footer .material-links a:focus {
+            text-decoration: underline;
+            opacity: 1;
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            footer .material-links a {
+                transition: opacity 160ms ease-in-out;
+            }
+        }
     </style>
 </head>
 
@@ -105,7 +129,11 @@
                         btn.className = "copy-btn outline";
                         btn.type = "button";
                         btn.setAttribute("aria-label", "Copy code");
-                        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path fill="currentColor" d="M16 2H8a2 2 0 0 0-2 2v1H4v15a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5h-2V4a2 2 0 0 0-2-2zM8 4h8v1H8V4zm10 5H6v11h12V9z"/></svg><span class="copy-label" style="margin-left:6px">Copy</span>';
+                        // The following inline SVG is a Google Material Icon ("content_copy").
+                        // Material Icons are provided by Google and licensed under the Apache License, Version 2.0.
+                        // See: https://github.com/google/material-design-icons
+                        // License: http://www.apache.org/licenses/LICENSE-2.0
+                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="16" height="16" fill="currentColor"><path d="M300-200q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560ZM180-80q-24 0-42-18t-18-42v-620h60v620h500v60H180Zm120-180v-560 560Z"/></svg><span class="copy-label" style="margin-left:6px">Copy</span>';
                         pre.appendChild(btn);
 
                         // regenerate button
@@ -113,7 +141,11 @@
                         regen.className = "regen-btn outline";
                         regen.type = "button";
                         regen.setAttribute("aria-label", "Regenerate");
-                        regen.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14"><path fill="currentColor" d="M12 6V3L8 7l4 4V8c2.8 0 5 2.2 5 5a5 5 0 0 1-5 5 5 5 0 0 1-4.9-4H9a7 7 0 0 0 6.9 7A7 7 0 0 0 23 13c0-3.9-3.1-7-7-7z"/></svg>';
+                        // The following inline SVG is a Google Material Icon ("refresh").
+                        // Material Icons are provided by Google and licensed under the Apache License, Version 2.0.
+                        // See: https://github.com/google/material-design-icons
+                        // License: http://www.apache.org/licenses/LICENSE-2.0
+                        regen.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="14" height="14" fill="currentColor"><path d="M480-160q-133 0-226.5-93.5T160-480q0-133 93.5-226.5T480-800q85 0 149 34.5T740-671v-129h60v254H546v-60h168q-38-60-97-97t-137-37q-109 0-184.5 75.5T220-480q0 109 75.5 184.5T480-220q83 0 152-47.5T728-393h62q-29 105-115 169t-195 64Z"/></svg>';
                         pre.appendChild(regen);
 
                         const flash = (msg) => {
@@ -188,6 +220,23 @@
 
         <footer>
             <p>Copyright &copy; 2026 Daisuke NAGAO</p>
+            <!--
+              Material Icons attribution files (Apache-2.0) are included
+              in this folder as required by the icon license. See the
+              local files LICENSE-MATERIAL-ICONS.txt and
+              NOTICE-MATERIAL-ICONS.txt for details.
+            -->
+            <p class="material-links">
+                <small>
+                    <a href="LICENSE-MATERIAL-ICONS.txt" rel="license">Material icons license</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="NOTICE-MATERIAL-ICONS.txt">Material icons notice</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="pkg/LICENSE.html">Dependency licenses</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="pkg/LICENSE" rel="license">Project license</a>
+                </small>
+            </p>
         </footer>
     </article>
 </body>
