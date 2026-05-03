@@ -75,15 +75,24 @@
 
             <fieldset>
                 <legend>Guard Options:</legend>
-                <label for="prefix">Prefix</label>
-                <input id="prefix" type="text" maxlength="64"
-                    placeholder="e.g., Enter a prefix (ASCII only, max 64 chars)." />
-                <label for="suffixEnable"
-                    style="display:inline-flex;align-items:center;gap:8px;margin-left:0.5rem"><input id="suffixEnable"
-                        type="checkbox" /> Enable suffix</label>
-                <label for="suffix">Suffix</label>
-                <input id="suffix" type="text" maxlength="64"
-                    placeholder="e.g., Enter a suffix (ASCII only, max 64 chars)." disabled />
+                <div class="grid" style="align-items:center; gap:0.75rem;">
+                    <div>
+                        <label for="prefix">Prefix</label>
+                        <input id="prefix" type="text" maxlength="64"
+                            placeholder="e.g., Enter a prefix (ASCII only, max 64 chars)." />
+                    </div>
+
+                    <div>
+                        <label for="suffix">Suffix</label>
+                        <input id="suffix" type="text" maxlength="64"
+                            placeholder="e.g., Enter a suffix (ASCII only, max 64 chars)." disabled />
+                    </div>
+
+                    <div style="display:flex; align-items:center;">
+                        <input id="suffixEnable" type="checkbox" />
+                        <label for="suffixEnable" style="margin-left:0.5rem; margin-bottom:0;">Enable suffix</label>
+                    </div>
+                </div>
             </fieldset>
 
             <pre id="out"><code class="language-cpp">loading...</code></pre>
