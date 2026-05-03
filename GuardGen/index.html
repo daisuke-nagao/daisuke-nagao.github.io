@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 
 <head>
     <meta charset="utf-8" />
@@ -21,6 +21,7 @@
             --pico-font-family-monospace: "Fira Code", SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", ui-monospace, monospace, var(--pico-font-family-emoji);
             --pico-font-family-sans-serif: "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", system-ui, sans-serif, var(--pico-font-family-emoji);
         }
+
         /* Pico-friendly styling for unobtrusive Material Icons attribution links */
         footer .material-links {
             font-size: 0.85rem;
@@ -30,16 +31,19 @@
             gap: 0.5rem;
             align-items: center;
         }
+
         footer .material-links a {
             color: inherit;
             text-decoration: none;
             opacity: 0.85;
         }
+
         footer .material-links a:hover,
         footer .material-links a:focus {
             text-decoration: underline;
             opacity: 1;
         }
+
         @media (prefers-reduced-motion: no-preference) {
             footer .material-links a {
                 transition: opacity 160ms ease-in-out;
@@ -69,36 +73,145 @@
                 <input type="radio" id="C" name="lang" value="C" /><label htmlFor="C">C</label>
             </fieldset>
 
+            <fieldset>
+                <legend>Guard Options:</legend>
+                <label for="prefix">Prefix</label>
+                <input id="prefix" type="text" maxlength="64"
+                    placeholder="e.g., Enter a prefix (ASCII only, max 64 chars)." />
+                <label for="suffixEnable"
+                    style="display:inline-flex;align-items:center;gap:8px;margin-left:0.5rem"><input id="suffixEnable"
+                        type="checkbox" /> Enable suffix</label>
+                <label for="suffix">Suffix</label>
+                <input id="suffix" type="text" maxlength="64"
+                    placeholder="e.g., Enter a suffix (ASCII only, max 64 chars)." disabled />
+            </fieldset>
+
             <pre id="out"><code class="language-cpp">loading...</code></pre>
             <script type="module">
                 import init, { generate_guard, Language, LineEnding } from "./pkg/guardgen_lib.js";
 
+                // Note: removed UUID generator function. Prefix initial value will be the
+                // literal string "UUID" as requested.
+
                 async function main() {
                     await init();
                     const pre = document.getElementById("out");
-                    const codeEl = pre.querySelector("code");
+                    let codeEl = pre.querySelector("code");
 
-                    // Generate content and keep a raw copy for clipboard
+                    // Controls
+                    const prefixInput = document.getElementById("prefix");
+                    const suffixEnable = document.getElementById("suffixEnable");
+                    const suffixInput = document.getElementById("suffix");
+
+                    /**
+                     * @brief Sanitize a string to ASCII-only, remove newlines, and enforce 64-char max.
+                     *
+                     * @pre `s` is a string (may be empty).
+                     * @post The returned string contains only ASCII characters and no CR/LF, length <= 64.
+                     * @invariant No multi-line input remains.
+                     */
+                    function sanitizeAscii(s) {
+                        let cleaned = s.replace(/\r?\n|\r/g, "");
+                        cleaned = cleaned.replace(/[^\x00-\x7F]/g, "");
+                        if (cleaned.length > 64) cleaned = cleaned.slice(0, 64);
+                        return cleaned;
+                    }
+
+                    // Initialize prefix with the literal "UUID" if empty, else sanitize existing value.
+                    if (!prefixInput.value) {
+                        prefixInput.value = "UUID";
+                    } else {
+                        prefixInput.value = sanitizeAscii(prefixInput.value);
+                    }
+
+                    // Keep suffix disabled unless checkbox checked.
+                    suffixInput.disabled = !suffixEnable.checked;
+
+                    prefixInput.addEventListener('input', () => {
+                        prefixInput.value = sanitizeAscii(prefixInput.value);
+                    });
+                    suffixInput.addEventListener('input', () => {
+                        suffixInput.value = sanitizeAscii(suffixInput.value);
+                    });
+
+                    suffixEnable.addEventListener('change', () => {
+                        // If unchecked, disable input and we will pass null to generate_guard.
+                        suffixInput.disabled = !suffixEnable.checked;
+                        if (suffixEnable.checked) suffixInput.focus();
+                        // Update preview immediately on toggle
+                        regenerate();
+                    });
+
                     const getSelectedLanguage = () => {
                         const sel = document.querySelector('input[name="lang"]:checked');
                         if (!sel) return Language.None;
                         return sel.value === 'C' ? Language.C : Language.Cxx;
                     };
 
-                    let rawText = generate_guard("UUID", null, getSelectedLanguage(), LineEnding.LF);
-                    codeEl.textContent = rawText;
+                    /**
+                     * @brief Determine the value to pass as the second argument to generate_guard.
+                     *
+                     * @pre No precondition; reads current UI state.
+                     * @post Returns `null` when suffix is disabled; otherwise returns the (possibly empty) ASCII suffix string.
+                     */
+                    function getSuffixForGenerate() {
+                        if (!suffixEnable.checked) {
+                            // When the suffix checkbox is unchecked, intentionally return null
+                            // to signal "no suffix" rather than an empty string.
+                            return null;
+                        }
+                        return suffixInput.value;
+                    }
 
-                    // Syntax highlight (use safeHighlight to unset data-highlighted first)
+                    // Render preview by calling generate_guard with user-provided prefix and suffix/null.
+                    function regenerate() {
+                        const prefix = prefixInput.value;
+                        const suffixArg = getSuffixForGenerate();
+                        try {
+                            const txt = generate_guard(prefix, suffixArg, getSelectedLanguage(), LineEnding.LF);
+                            // Replace the <code> element to remove any previous highlight/line-number wrappers,
+                            // then apply highlighting to the fresh element.
+                            try {
+                                const newCode = document.createElement('code');
+                                newCode.className = codeEl.className || 'language-cpp';
+                                newCode.textContent = txt;
+                                pre.replaceChild(newCode, codeEl);
+                                codeEl = newCode;
+                            } catch (e) {
+                                console.warn('code element replace failed', e);
+                                codeEl.textContent = txt;
+                            }
+
+                            if (window.hljs) {
+                                try {
+                                    safeHighlight(codeEl);
+                                    if (hljs.highlightElement) {
+                                        hljs.highlightElement(codeEl);
+                                    } else if (hljs.highlightBlock) {
+                                        hljs.highlightBlock(codeEl);
+                                    } else if (hljs.highlightAll) {
+                                        hljs.highlightAll();
+                                    }
+                                    if (hljs.lineNumbersBlock) {
+                                        try { hljs.lineNumbersBlock(codeEl); } catch (e) { console.warn(e); }
+                                    }
+                                } catch (e) { console.warn('highlight failed', e); }
+                            }
+                        } catch (e) {
+                            console.warn('generate_guard failed', e);
+                        }
+                    }
+
+                    // Initial generation using the user-visible prefix ("UUID" by default) and suffix/null.
+                    regenerate();
+
                     function safeHighlight(el) {
                         try {
                             if (el && el.dataset && el.dataset.highlighted) {
                                 delete el.dataset.highlighted;
                                 el.removeAttribute('data-highlighted');
                             }
-                        } catch (e) {
-                            console.warn('safeHighlight cleanup failed', e);
-                        }
-
+                        } catch (e) { console.warn('safeHighlight cleanup failed', e); }
                         if (window.hljs) {
                             if (hljs.highlightElement) {
                                 hljs.highlightElement(el);
@@ -112,39 +225,23 @@
 
                     if (window.hljs) {
                         safeHighlight(codeEl);
-
-                        // Add line numbers (if plugin available)
                         if (hljs.lineNumbersBlock) {
-                            try {
-                                hljs.lineNumbersBlock(codeEl);
-                            } catch (e) {
-                                console.warn("hljs.lineNumbersBlock failed:", e);
-                            }
+                            try { hljs.lineNumbersBlock(codeEl); } catch (e) { console.warn(e); }
                         }
                     }
 
-                    // Add a single copy button and a regenerate button inside the pre
                     if (!pre.querySelector(".copy-btn")) {
                         const btn = document.createElement("button");
                         btn.className = "copy-btn outline";
                         btn.type = "button";
                         btn.setAttribute("aria-label", "Copy code");
-                        // The following inline SVG is a Google Material Icon ("content_copy").
-                        // Material Icons are provided by Google and licensed under the Apache License, Version 2.0.
-                        // See: https://github.com/google/material-design-icons
-                        // License: http://www.apache.org/licenses/LICENSE-2.0
                         btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="16" height="16" fill="currentColor"><path d="M300-200q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560ZM180-80q-24 0-42-18t-18-42v-620h60v620h500v60H180Zm120-180v-560 560Z"/></svg><span class="copy-label" style="margin-left:6px">Copy</span>';
                         pre.appendChild(btn);
 
-                        // regenerate button
                         const regen = document.createElement("button");
                         regen.className = "regen-btn outline";
                         regen.type = "button";
                         regen.setAttribute("aria-label", "Regenerate");
-                        // The following inline SVG is a Google Material Icon ("refresh").
-                        // Material Icons are provided by Google and licensed under the Apache License, Version 2.0.
-                        // See: https://github.com/google/material-design-icons
-                        // License: http://www.apache.org/licenses/LICENSE-2.0
                         regen.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="14" height="14" fill="currentColor"><path d="M480-160q-133 0-226.5-93.5T160-480q0-133 93.5-226.5T480-800q85 0 149 34.5T740-671v-129h60v254H546v-60h168q-38-60-97-97t-137-37q-109 0-184.5 75.5T220-480q0 109 75.5 184.5T480-220q83 0 152-47.5T728-393h62q-29 105-115 169t-195 64Z"/></svg>';
                         pre.appendChild(regen);
 
@@ -155,9 +252,8 @@
                             setTimeout(() => { btn.classList.remove("copied"); if (lbl) lbl.textContent = "Copy"; }, 1400);
                         };
 
-                        const getText = () => rawText;
+                        const getText = () => codeEl.textContent || "";
 
-                        // Only support navigator.clipboard; disable the button if unavailable
                         if (navigator.clipboard && navigator.clipboard.writeText) {
                             btn.addEventListener("click", async () => {
                                 try {
@@ -173,26 +269,12 @@
                             btn.title = "Clipboard API not available";
                         }
 
-                        // regenerate handler: generate new guard and re-highlight + reapply line numbers
                         regen.addEventListener("click", async () => {
-                            // simple visual feedback
                             regen.disabled = true;
                             const oldLabel = regen.innerHTML;
                             regen.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.3 0 6 2.7 6 6a6 6 0 0 1-6 6 6 6 0 0 1-5.9-5H9a8 8 0 0 0 7.9 8A8 8 0 0 0 25 13c0-4.4-3.6-9-13-9z"/></svg>';
                             try {
-                                rawText = generate_guard("UUID", null, getSelectedLanguage(), LineEnding.LF);
-                                codeEl.textContent = rawText;
-                                if (window.hljs) {
-                                    // remove existing line numbers first (plugin may duplicate)
-                                    const existing = pre.querySelector('.hljs-ln-numbers');
-                                    if (existing) existing.remove();
-
-                                    safeHighlight(codeEl);
-
-                                    if (hljs.lineNumbersBlock) {
-                                        try { hljs.lineNumbersBlock(codeEl); } catch (e) { console.warn(e); }
-                                    }
-                                }
+                                regenerate();
                             } finally {
                                 regen.disabled = false;
                                 regen.innerHTML = oldLabel;
@@ -203,12 +285,7 @@
                         const radios = document.querySelectorAll('input[name="lang"]');
                         radios.forEach(r => r.addEventListener('change', () => {
                             try {
-                                rawText = generate_guard("UUID", null, getSelectedLanguage(), LineEnding.LF);
-                                codeEl.textContent = rawText;
-                                safeHighlight(codeEl);
-                                if (hljs.lineNumbersBlock) {
-                                    try { hljs.lineNumbersBlock(codeEl); } catch (e) { console.warn(e); }
-                                }
+                                regenerate();
                             } catch (e) { console.warn('generate_guard failed on language change', e); }
                         }));
                     }
