@@ -21,34 +21,6 @@
             --pico-font-family-monospace: "Fira Code", SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", ui-monospace, monospace, var(--pico-font-family-emoji);
             --pico-font-family-sans-serif: "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", system-ui, sans-serif, var(--pico-font-family-emoji);
         }
-
-        /* Pico-friendly styling for unobtrusive Material Icons attribution links */
-        footer .material-links {
-            font-size: 0.85rem;
-            opacity: 0.75;
-            margin: 0.25rem 0 0;
-            display: inline-flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        footer .material-links a {
-            color: inherit;
-            text-decoration: none;
-            opacity: 0.85;
-        }
-
-        footer .material-links a:hover,
-        footer .material-links a:focus {
-            text-decoration: underline;
-            opacity: 1;
-        }
-
-        @media (prefers-reduced-motion: no-preference) {
-            footer .material-links a {
-                transition: opacity 160ms ease-in-out;
-            }
-        }
     </style>
 </head>
 
@@ -73,27 +45,22 @@
                 <input type="radio" id="C" name="lang" value="C" /><label htmlFor="C">C</label>
             </fieldset>
 
-            <fieldset>
-                <legend>Guard Options:</legend>
-                <div class="grid" style="align-items:center; gap:0.75rem;">
-                    <div>
-                        <label for="prefix">Prefix</label>
-                        <input id="prefix" type="text" maxlength="64"
-                            placeholder="e.g., Enter a prefix (ASCII only, max 64 chars)." />
-                    </div>
+            <form class="grid">
+                <fieldset role="group">
+                    <label for="prefix">Prefix: </label>
+                    <input id="prefix" type="text" maxlength="64"
+                        placeholder="e.g., Enter a prefix (ASCII only, max 64 chars)." />
+                </fieldset>
 
-                    <div>
-                        <label for="suffix">Suffix</label>
-                        <input id="suffix" type="text" maxlength="64"
-                            placeholder="e.g., Enter a suffix (ASCII only, max 64 chars)." disabled />
-                    </div>
+                <fieldset role="group">
+                    <label for="suffix">Suffix: </label>
+                    <input id="suffix" type="text" maxlength="64"
+                        placeholder="e.g., Enter a suffix (ASCII only, max 64 chars)." disabled />
 
-                    <div style="display:flex; align-items:center;">
-                        <input id="suffixEnable" type="checkbox" />
-                        <label for="suffixEnable" style="margin-left:0.5rem; margin-bottom:0;">Enable suffix</label>
-                    </div>
-                </div>
-            </fieldset>
+                    <input id="suffixEnable" type="checkbox" />
+                    <label for="suffixEnable">Enable suffix</label>
+                </fieldset>
+            </form>
 
             <pre id="out"><code class="language-cpp">loading...</code></pre>
             <script type="module">
@@ -244,7 +211,7 @@
                         btn.className = "copy-btn outline";
                         btn.type = "button";
                         btn.setAttribute("aria-label", "Copy code");
-                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="16" height="16" fill="currentColor"><path d="M300-200q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560ZM180-80q-24 0-42-18t-18-42v-620h60v620h500v60H180Zm120-180v-560 560Z"/></svg><span class="copy-label" style="margin-left:6px">Copy</span>';
+                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="16" height="16" fill="currentColor"><path d="M300-200q-24 0-42-18t-18-42v-560q0-24 18-42t42-18h440q24 0 42 18t18 42v560q0 24-18 42t-42 18H300Zm0-60h440v-560H300v560ZM180-80q-24 0-42-18t-18-42v-620h60v620h500v60H180Zm120-180v-560 560Z"/></svg><span class="copy-label">Copy</span>';
                         pre.appendChild(btn);
 
                         const regen = document.createElement("button");
@@ -314,13 +281,13 @@
             -->
             <p class="material-links">
                 <small>
-                    <a href="LICENSE-MATERIAL-ICONS.txt" rel="license">Material icons license</a>
+                    <a href="LICENSE-MATERIAL-ICONS.txt" rel="license" class="secondary">Material icons license</a>
                     <span aria-hidden="true">·</span>
-                    <a href="NOTICE-MATERIAL-ICONS.txt">Material icons notice</a>
+                    <a href="NOTICE-MATERIAL-ICONS.txt" class="secondary">Material icons notice</a>
                     <span aria-hidden="true">·</span>
-                    <a href="pkg/LICENSE.html">Dependency licenses</a>
+                    <a href="pkg/LICENSE.html" class="secondary">Dependency licenses</a>
                     <span aria-hidden="true">·</span>
-                    <a href="pkg/LICENSE" rel="license">Project license</a>
+                    <a href="pkg/LICENSE" rel="license" class="secondary">Project license</a>
                 </small>
             </p>
         </footer>
