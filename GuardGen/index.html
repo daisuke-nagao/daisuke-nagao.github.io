@@ -21,6 +21,30 @@
             --pico-font-family-monospace: "Fira Code", SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", ui-monospace, monospace, var(--pico-font-family-emoji);
             --pico-font-family-sans-serif: "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", system-ui, sans-serif, var(--pico-font-family-emoji);
         }
+
+        /* Semantic list layout for license/material links */
+        .footer-links {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .footer-links li {
+            display: inline-flex;
+        }
+
+        /* Add visual separator between list items (decorative only) */
+        .footer-links li+li::before {
+            content: "·";
+            margin: 0 0.5rem;
+            color: currentColor;
+            opacity: 0.6;
+        }
     </style>
 </head>
 
@@ -41,8 +65,8 @@
 
             <fieldset>
                 <legend>Language:</legend>
-                <input type="radio" id="Cxx" name="lang" value="Cxx" checked /><label htmlFor="Cxx">C++</label>
-                <input type="radio" id="C" name="lang" value="C" /><label htmlFor="C">C</label>
+                <input type="radio" id="Cxx" name="lang" value="Cxx" checked /><label for="Cxx">C++</label>
+                <input type="radio" id="C" name="lang" value="C" /><label for="C">C</label>
             </fieldset>
 
             <form class="grid">
@@ -73,6 +97,10 @@
                     await init();
                     const pre = document.getElementById("out");
                     let codeEl = pre.querySelector("code");
+
+                    // Store the exact last string produced by generate_guard for clipboard copying.
+                    // This avoids relying on DOM text which highlight.js or other renderers may alter.
+                    let lastGenerated = "";
 
                     // Controls
                     const prefixInput = document.getElementById("prefix");
@@ -145,6 +173,9 @@
                         const suffixArg = getSuffixForGenerate();
                         try {
                             const txt = generate_guard(prefix, suffixArg, getSelectedLanguage(), LineEnding.LF);
+                            // Keep an exact copy of the generated text so clipboard operations
+                            // can use the original string produced by generate_guard.
+                            lastGenerated = txt;
                             // Replace the <code> element to remove any previous highlight/line-number wrappers,
                             // then apply highlighting to the fresh element.
                             try {
@@ -228,7 +259,10 @@
                             setTimeout(() => { btn.classList.remove("copied"); if (lbl) lbl.textContent = "Copy"; }, 1400);
                         };
 
-                        const getText = () => codeEl.textContent || "";
+                        // Return the exact last-generated guard string produced by generate_guard.
+                        // Using the stored `lastGenerated` ensures we copy the original text unchanged,
+                        // even if highlight.js or other DOM modifications alter the rendered code element.
+                        const getText = () => lastGenerated;
 
                         if (navigator.clipboard && navigator.clipboard.writeText) {
                             btn.addEventListener("click", async () => {
@@ -279,17 +313,12 @@
               local files LICENSE-MATERIAL-ICONS.txt and
               NOTICE-MATERIAL-ICONS.txt for details.
             -->
-            <p class="material-links">
-                <small>
-                    <a href="LICENSE-MATERIAL-ICONS.txt" rel="license" class="secondary">Material icons license</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="NOTICE-MATERIAL-ICONS.txt" class="secondary">Material icons notice</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="pkg/LICENSE.html" class="secondary">Dependency licenses</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="pkg/LICENSE" rel="license" class="secondary">Project license</a>
-                </small>
-            </p>
+            <ul class="footer-links" aria-label="Licenses">
+                <li><a href="LICENSE-MATERIAL-ICONS.txt" rel="license" class="secondary">Material icons license</a></li>
+                <li><a href="NOTICE-MATERIAL-ICONS.txt" class="secondary">Material icons notice</a></li>
+                <li><a href="pkg/LICENSE.html" class="secondary">Dependency licenses</a></li>
+                <li><a href="pkg/LICENSE" rel="license" class="secondary">Project license</a></li>
+            </ul>
         </footer>
     </article>
 </body>
