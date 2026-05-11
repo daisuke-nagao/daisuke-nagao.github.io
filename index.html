@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
     <title>Index</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,25 +21,43 @@
             --pico-font-family-monospace: "Fira Code", SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", ui-monospace, monospace, var(--pico-font-family-emoji);
             --pico-font-family-sans-serif: "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, "Helvetica Neue", system-ui, sans-serif, var(--pico-font-family-emoji);
         }
+
+        main>article>header {
+            text-align: center;
+        }
+
+        pre {
+            margin-bottom: 0;
+        }
+
+        footer small {
+            color: var(--pico-muted-color);
+        }
     </style>
 </head>
 
-<body class="container">
-    <article>
-        <header>
-            <h1>Index</h1>
-        </header>
+<body>
+    <main class="container">
+        <article>
+            <header>
+                <h1>Index</h1>
+            </header>
 
-        <main>
+            <section>
+                <ul>
+                    <li><a href="./GuardGen/index.html">GuardGen</a> - A tool for generating guard code in Rust.</li>
+                </ul>
+            </section>
+        </article>
+    </main>
+
+    <footer class="container">
+        <nav>
             <ul>
-                <li><a href="./GuardGen/index.html">GuardGen</a> - A tool for generating guard code in Rust.</li>
+                <li><small>Copyright &copy; 2026 Daisuke NAGAO</small></li>
             </ul>
-        </main>
-
-        <footer>
-            <p>Copyright &copy; 2026 Daisuke NAGAO</p>
-        </footer>
-    </article>
+        </nav>
+    </footer>
 </body>
 
 </html>
