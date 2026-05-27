@@ -11,8 +11,6 @@
         href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Noto+Color+Emoji&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.9.0/styles/line-numbers.min.css">
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.9.0/highlightjs-line-numbers.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.indigo.min.css">
@@ -49,15 +47,15 @@
 
             <section>
                 <p>
-                    Generate a UUID v7-based include guard, copy it, and paste
-                    it directly into your header file.
+                    Generate a UUID v7 or v4-based include guard, copy it, and
+                    paste it directly into your header file.
                 </p>
             </section>
 
             <section class="grid" aria-label="Features">
                 <article>
                     <h3>Unique</h3>
-                    <p>UUID v7-based guards help prevent header collisions.</p>
+                    <p>UUID v7 and v4-based guards help prevent header collisions.</p>
                 </article>
 
                 <article>
@@ -79,6 +77,18 @@
 
                     <input type="radio" id="Cxx" name="lang" value="Cxx" checked /><label for="Cxx">C++</label>
                     <input type="radio" id="C" name="lang" value="C" /><label for="C">C</label>
+                </fieldset>
+
+                <fieldset>
+                    <legend>UUID version</legend>
+
+                    <input type="radio" id="UuidV7" name="uuidVersion" checked />
+                    <label for="UuidV7">UUID v7</label>
+
+                    <input type="radio" id="UuidV4" name="uuidVersion" />
+                    <label for="UuidV4">UUID v4</label>
+
+                    <small>UUID v7 remains the default.</small>
                 </fieldset>
 
                 <fieldset class="grid">
@@ -132,17 +142,15 @@
 
                     <pre id="out"><code class="language-cpp">loading...</code></pre>
                     <script type="module">
-                        import init, { generate_guard, Language, LineEnding } from "./pkg/guardgen_lib.js";
-
-                        // Note: removed UUID generator function. Prefix initial value will be the
-                        // literal string "UUID" as requested.
+                        import init, { IncludeGuardGenerator, Language, LineEnding, UuidKind } from "./pkg/guardgen_lib.js";
 
                         async function main() {
                             await init();
                             const pre = document.getElementById("out");
                             let codeEl = pre.querySelector("code");
+                            const generator = new IncludeGuardGenerator();
 
-                            // Store the exact last string produced by generate_guard for clipboard copying.
+                            // Store the exact last string produced by the generator for clipboard copying.
                             // This avoids relying on DOM text which highlight.js or other renderers may alter.
                             let lastGenerated = "";
 
@@ -150,6 +158,13 @@
                             const prefixInput = document.getElementById("prefix");
                             const suffixEnable = document.getElementById("suffixEnable");
                             const suffixInput = document.getElementById("suffix");
+                            const uuidV7Input = document.getElementById("UuidV7");
+                            const uuidV4Input = document.getElementById("UuidV4");
+                            const settingsStorageKey = "guardgen.options.v1";
+                            let storageAvailable = true;
+
+                            uuidV7Input.value = UuidKind.V7;
+                            uuidV4Input.value = UuidKind.V4;
 
                             /**
                              * @brief Sanitize a string to ASCII-only, remove newlines, and enforce 64-char max.
@@ -165,29 +180,132 @@
                                 return cleaned;
                             }
 
-                            // Initialize prefix with the literal "UUID" if empty, else sanitize existing value.
-                            if (!prefixInput.value) {
-                                prefixInput.value = "UUID";
-                            } else {
-                                prefixInput.value = sanitizeAscii(prefixInput.value);
+                            function getSelectedLanguageValue() {
+                                const sel = document.querySelector('input[name="lang"]:checked');
+                                return sel ? sel.value : "Cxx";
                             }
+
+                            function getSelectedUuidVersionValue() {
+                                const sel = document.querySelector('input[name="uuidVersion"]:checked');
+                                return sel ? sel.value : String(UuidKind.V7);
+                            }
+
+                            function readStoredSettings() {
+                                const storage = getStorage();
+                                if (!storage) return null;
+
+                                let raw = null;
+                                try {
+                                    raw = storage.getItem(settingsStorageKey);
+                                } catch (e) {
+                                    storageAvailable = false;
+                                    console.warn("localStorage load failed", e);
+                                    return null;
+                                }
+
+                                if (!raw) return null;
+
+                                try {
+                                    const parsed = JSON.parse(raw);
+                                    if (!parsed || typeof parsed !== "object") return null;
+                                    return parsed;
+                                } catch (e) {
+                                    console.warn("localStorage data parse failed", e);
+                                    return null;
+                                }
+                            }
+
+                            function saveStoredSettings() {
+                                const storage = getStorage();
+                                if (!storage) return;
+
+                                const payload = {
+                                    lang: getSelectedLanguageValue(),
+                                    uuidVersion: getSelectedUuidVersionValue(),
+                                    prefix: sanitizeAscii(prefixInput.value),
+                                    suffixEnabled: suffixEnable.checked,
+                                    suffix: sanitizeAscii(suffixInput.value),
+                                };
+
+                                try {
+                                    storage.setItem(settingsStorageKey, JSON.stringify(payload));
+                                } catch (e) {
+                                    storageAvailable = false;
+                                    console.warn("localStorage save failed", e);
+                                }
+                            }
+
+                            function getStorage() {
+                                if (!storageAvailable) return null;
+                                try {
+                                    return window.localStorage;
+                                } catch (e) {
+                                    storageAvailable = false;
+                                    console.warn("localStorage unavailable", e);
+                                    return null;
+                                }
+                            }
+
+                            function checkRadioByValue(name, value) {
+                                const radios = document.querySelectorAll(`input[name="${name}"]`);
+                                let matched = false;
+                                radios.forEach((radio) => {
+                                    if (radio.value === value) {
+                                        radio.checked = true;
+                                        matched = true;
+                                    }
+                                });
+                                return matched;
+                            }
+
+                            const storedSettings = readStoredSettings();
+                            if (storedSettings) {
+                                if (typeof storedSettings.lang === "string") {
+                                    checkRadioByValue("lang", storedSettings.lang);
+                                }
+                                if (typeof storedSettings.uuidVersion === "string") {
+                                    checkRadioByValue("uuidVersion", storedSettings.uuidVersion);
+                                }
+                                if (typeof storedSettings.prefix === "string") {
+                                    prefixInput.value = storedSettings.prefix;
+                                }
+                                if (typeof storedSettings.suffixEnabled === "boolean") {
+                                    suffixEnable.checked = storedSettings.suffixEnabled;
+                                }
+                                if (typeof storedSettings.suffix === "string") {
+                                    suffixInput.value = storedSettings.suffix;
+                                }
+                            }
+
+                            // Restore persisted inputs when available; otherwise fall back to the default prefix.
+                            prefixInput.value = sanitizeAscii(prefixInput.value) || "UUID";
+                            suffixInput.value = sanitizeAscii(suffixInput.value);
 
                             // Keep suffix disabled unless checkbox checked.
                             suffixInput.disabled = !suffixEnable.checked;
 
                             prefixInput.addEventListener('input', () => {
                                 prefixInput.value = sanitizeAscii(prefixInput.value);
+                                saveStoredSettings();
                             });
                             suffixInput.addEventListener('input', () => {
                                 suffixInput.value = sanitizeAscii(suffixInput.value);
+                                saveStoredSettings();
                             });
 
                             suffixEnable.addEventListener('change', () => {
-                                // If unchecked, disable input and we will pass null to generate_guard.
+                                // If unchecked, disable input and we will pass null to the generator.
                                 suffixInput.disabled = !suffixEnable.checked;
                                 if (suffixEnable.checked) suffixInput.focus();
+                                saveStoredSettings();
                                 // Update preview immediately on toggle
                                 regenerate();
+                            });
+                            document.querySelectorAll('input[name="lang"]').forEach((input) => {
+                                input.addEventListener('change', () => {
+                                    saveStoredSettings();
+                                    regenerate();
+                                });
                             });
 
                             const getSelectedLanguage = () => {
@@ -196,8 +314,21 @@
                                 return sel.value === 'C' ? Language.C : Language.Cxx;
                             };
 
+                            const getSelectedUuidKind = () => {
+                                const sel = document.querySelector('input[name="uuidVersion"]:checked');
+                                if (!sel) return UuidKind.V7;
+                                return Number(sel.value) === UuidKind.V4 ? UuidKind.V4 : UuidKind.V7;
+                            };
+
+                            document.querySelectorAll('input[name="uuidVersion"]').forEach((input) => {
+                                input.addEventListener('change', () => {
+                                    saveStoredSettings();
+                                    regenerate();
+                                });
+                            });
+
                             /**
-                             * @brief Determine the value to pass as the second argument to generate_guard.
+                             * @brief Determine the value to pass as the suffix argument to the generator.
                              *
                              * @pre No precondition; reads current UI state.
                              * @post Returns `null` when suffix is disabled; otherwise returns the (possibly empty) ASCII suffix string.
@@ -211,14 +342,20 @@
                                 return suffixInput.value;
                             }
 
-                            // Render preview by calling generate_guard with user-provided prefix and suffix/null.
+                            // Render preview by calling the generator with user-provided options.
                             function regenerate() {
                                 const prefix = prefixInput.value;
                                 const suffixArg = getSuffixForGenerate();
                                 try {
-                                    const txt = generate_guard(prefix, suffixArg, getSelectedLanguage(), LineEnding.LF);
+                                    const txt = generator.generate(
+                                        prefix,
+                                        suffixArg,
+                                        getSelectedLanguage(),
+                                        LineEnding.LF,
+                                        getSelectedUuidKind()
+                                    );
                                     // Keep an exact copy of the generated text so clipboard operations
-                                    // can use the original string produced by generate_guard.
+                                    // can use the original string produced by the generator.
                                     lastGenerated = txt;
                                     // Replace the <code> element to remove any previous highlight/line-number wrappers,
                                     // then apply highlighting to the fresh element.
@@ -249,8 +386,9 @@
                                         } catch (e) { console.warn('highlight failed', e); }
                                     }
                                 } catch (e) {
-                                    console.warn('generate_guard failed', e);
+                                    console.warn('generator failed', e);
                                 }
+                                saveStoredSettings();
                             }
 
                             // Initial generation using the user-visible prefix ("UUID" by default) and suffix/null.
@@ -319,6 +457,14 @@
                                     }
                                 });
                             }
+
+                            window.addEventListener("beforeunload", () => {
+                                try {
+                                    generator.free();
+                                } catch (e) {
+                                    console.warn("generator.free failed", e);
+                                }
+                            });
                         }
 
                         main();

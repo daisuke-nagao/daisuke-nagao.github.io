@@ -1,7 +1,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const __wbg_includeguardgenerator_free: (a: number, b: number) => void;
 export const generate_guard: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
+export const includeguardgenerator_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+export const includeguardgenerator_new: () => number;
 export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;
 export const __wbindgen_externrefs: WebAssembly.Table;

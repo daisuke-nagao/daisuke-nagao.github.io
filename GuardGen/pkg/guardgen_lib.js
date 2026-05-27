@@ -1,6 +1,77 @@
 /* @ts-self-types="./guardgen_lib.d.ts" */
 
 /**
+ * Include guard generator struct.
+ *
+ * @pre The `prefix` must be a non-empty string describing the guard prefix.
+ * @post Calling `generate(&mut self)` returns a well-formed include-guard text.
+ * @invariant The internal `v7_context` (if present) is private and used to ensure
+ *            monotonic UUID v7 generation for short-interval repeated calls.
+ */
+export class IncludeGuardGenerator {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        IncludeGuardGeneratorFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_includeguardgenerator_free(ptr, 0);
+    }
+    /**
+     * Generate the include guard string using the generator's configuration.
+     *
+     * @pre The generator was created via `new`.
+     * @post Returns a textual include guard using the selected UUID generation method.
+     * Generate the include guard string using the provided parameters.
+     *
+     * All parameters are supplied on each call so the same generator instance
+     * can be reused with different prefixes/suffixes/UUID kinds.
+     * @param {string} prefix
+     * @param {string | null | undefined} suffix
+     * @param {Language} language
+     * @param {LineEnding} line_ending
+     * @param {UuidKind} uuid_kind
+     * @returns {string}
+     */
+    generate(prefix, suffix, language, line_ending, uuid_kind) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(prefix, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            var ptr1 = isLikeNone(suffix) ? 0 : passStringToWasm0(suffix, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            var len1 = WASM_VECTOR_LEN;
+            const ret = wasm.includeguardgenerator_generate(this.__wbg_ptr, ptr0, len0, ptr1, len1, language, line_ending, uuid_kind);
+            deferred3_0 = ret[0];
+            deferred3_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
+     * Create a new `IncludeGuardGenerator`.
+     *
+     * @pre `prefix` must not be empty.
+     * @post Returns an initialized generator configured to produce UUIDs of type `uuid_kind`.
+     * Create a new `IncludeGuardGenerator` that holds only the internal context.
+     *
+     * The generator does not store prefix/suffix/language/line ending or UUID kind;
+     * those are provided per-call to `generate` to allow callers to reuse the
+     * same context while varying parameters.
+     */
+    constructor() {
+        const ret = wasm.includeguardgenerator_new();
+        this.__wbg_ptr = ret;
+        IncludeGuardGeneratorFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+}
+if (Symbol.dispose) IncludeGuardGenerator.prototype[Symbol.dispose] = IncludeGuardGenerator.prototype.free;
+
+/**
  * Enum representing the target language.
  * - `None`: No language-specific modifications.
  * - `C`: Adds `extern "C"` for C compatibility.
@@ -24,6 +95,18 @@ export const LineEnding = Object.freeze({
     None: 0, "0": "None",
     LF: 1, "1": "LF",
     CRLF: 2, "2": "CRLF",
+});
+
+/**
+ * Enum selecting UUID generation strategy.
+ *
+ * - V7: Time-ordered UUID version 7 (preferred for ordered identifiers).
+ * - V4: Random UUID version 4.
+ * @enum {0 | 1}
+ */
+export const UuidKind = Object.freeze({
+    V7: 0, "0": "V7",
+    V4: 1, "1": "V4",
 });
 
 /**
@@ -62,13 +145,13 @@ export function generate_guard(prefix, suffix, x, line_ending) {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
-        __wbg___wbindgen_throw_9c75d47bf9e7731e: function(arg0, arg1) {
+        __wbg___wbindgen_throw_1506f2235d1bdba0: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_getRandomValues_76dfc69825c9c552: function() { return handleError(function (arg0, arg1) {
             globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
         }, arguments); },
-        __wbg_now_4f457f10f864aec5: function() {
+        __wbg_now_190933fa139cc119: function() {
             const ret = Date.now();
             return ret;
         },
@@ -87,6 +170,10 @@ function __wbg_get_imports() {
         "./guardgen_lib_bg.js": import0,
     };
 }
+
+const IncludeGuardGeneratorFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_includeguardgenerator_free(ptr, 1));
 
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();
